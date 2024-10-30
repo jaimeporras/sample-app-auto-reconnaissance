@@ -1,0 +1,6 @@
+# lattice dns/ip
+lattice-ip: dev.tdm.anduril.com
+# lattice-bearer-token
+lattice-bearer-token: <your-bearer-token>
+# entity update frequency (seconds)
+entity-update-rate-seconds: 1

@@ -1,0 +1,5 @@
+APScheduler==3.10.4
+grpclib==0.4.7
+PyYAML==6.0.2
+
+anduril @ git+https://github.com/anduril/anduril-python.git@252843ed242f6b0248113996201cfc0601855211
