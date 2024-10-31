@@ -1,50 +1,43 @@
-from logging import Logger
-from apscheduler.schedulers.background import BackgroundScheduler
 import asyncio
-import time
-import os
-
+from logging import Logger
 from services.entity_streamer import EntityStreamer
-# cache_manager -> stores all assets (fighter, uav, tank)
-# another --> stores all the non-friendly  (ontology.template.track)
+from services.cache_manager import CacheManager
 from services.tasker import Tasker
 from utils.distance_calculator import DistanceCalculator
 
 class Arbiter:
     def __init__(self, logger: Logger, lattice_ip: str, bearer_token: str, update_rate_seconds: int):
-        print("KEVFIX ARBITER INIT", lattice_ip, bearer_token)
         self.logger = logger
-        self.update_rate_seconds = update_rate_seconds
         self.entity_streamer = EntityStreamer(logger, lattice_ip, bearer_token)
-
+        self.cache_manager = CacheManager()
+        #self.tasker = Tasker()
+ 
     async def start(self):
-        while True:
-            await self.consume_entities()
-            await asyncio.sleep(self.update_rate_seconds)
-        #self.entity_streamer.start()
-        #self.normal_processing()
-        #self.tasker.start()
+        try:
+            asyncio.create_task(self.consume_entities())
+            asyncio.create_task(self.recon_job())
+            await asyncio.Event().wait()
+        except (KeyboardInterrupt, SystemExit):
+            self.logger.info("shutting down Entity Auto Recon System")
 
     async def consume_entities(self):
-        async for entity in self.entity_streamer.stream_entities():
-            print("KEVFIX IN CONSUME_ENTITIES", entity)
-            pass
+        while True:
+            async for response in self.entity_streamer.stream_entities():
+                self.cache_manager.handle_response(response)
+    
+    async def recon_job(self):
+        while True:
+            self.logger.info("KEVFIX RECON JOB")
+            self.calculate_within_range()
+            await asyncio.sleep(1)
 
-    def normal_processing(self):
-        scheduler = BackgroundScheduler()
-        scheduler.add_job(
-            lambda: asyncio.run(self.entity_streamer.stream_entities()),
-            "interval",
-            seconds=self.update_rate_seconds,
-        )
-        scheduler.start()
-
-        self.logger.info("Press Ctrl+{0} to exit".format("Break" if os.name == "nt" else "C"))
-        try:
-            # This is here to simulate application activity (which keeps the main thread alive).
-            while True:
-                time.sleep(2)
-        except (KeyboardInterrupt, SystemExit):
-            # Not strictly necessary if daemonic mode is enabled but should be done if possible
-            self.logger.info("shutting down tle-lattice-integration")
-            scheduler.shutdown()
+    def calculate_within_range(self):
+        assets = self.cache_manager.get_assets()
+        tracks = self.cache_manager.get_tracks()
+        self.logger.info(f"KEVFIX ASSET SIZE {len(assets)} TRACK SIZE {len(tracks)}")
+        for asset in assets:
+            for track in tracks:
+                distance = DistanceCalculator.calculate(asset, track)
+                # self.logger.info(f"KEVFIX sanity check DISTANCE {distance}")
+                if distance <= 30000:
+                    self.logger.info(f"KEVFIX DISTANCE {distance}")

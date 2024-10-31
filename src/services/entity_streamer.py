@@ -1,18 +1,5 @@
-import time
 from logging import Logger
-from typing import Optional
-import asyncio
-"""
-from anduril.entitymanager.v1 import (
-    EntityManagerApiStub,
-    StreamEntityComponentsRequest,
-    StreamEntityComponentsResponse,
-)
-"""
 from grpclib.client import Channel
-
-ONTOLOGY_TEMPLATES_TO_FILTER = ["TRACK", "ASSET"]
-
 import anduril.entitymanager.v1 as EM
 import anduril.ontology.v1 as ONTOLOGY
 
@@ -38,26 +25,26 @@ class EntityStreamer:
         """
         predicates_mil_view_disposition = [
             EM.Predicate(
-                field_path="entity.mil_view.disposition",
-                value=ONTOLOGY.Disposition.HOSTILE,
-                comparator=EM.Comparator.EQUALITY
+                field_path="mil_view.disposition",
+                value=EM.Value(enum_type=EM.EnumType(value=ONTOLOGY.Disposition.HOSTILE)),
+                comparator=EM.Comparator(EM.Comparator.EQUALITY)
             ),
             EM.Predicate(
-                field_path="entity.mil_view.disposition",
-                value=ONTOLOGY.Disposition.SUSPICIOUS,
-                comparator=EM.Comparator.EQUALITY
+                field_path="mil_view.disposition",
+                value=EM.Value(enum_type=EM.EnumType(value=ONTOLOGY.Disposition.SUSPICIOUS)),
+                comparator=EM.Comparator(EM.Comparator.EQUALITY)
             )
         ]
         
         statement_disposition = EM.Statement(or_=EM.OrOperation(predicate_set=EM.PredicateSet(predicates=predicates_mil_view_disposition)))
 
-        statement_track = EM.Statement(predicate=EM.Predicate(field_path="entity.ontology.template", value=EM.EnumType(EM.Template.TRACK), comparator=EM.Comparator.EQUALITY))
+        statement_track = EM.Statement(predicate=EM.Predicate(field_path="ontology.template", value=EM.Value(enum_type=EM.EnumType(value=EM.Template.TRACK)), comparator=EM.Comparator(EM.Comparator.EQUALITY)))
 
         statement_track_and_disposition = EM.Statement(and_=EM.AndOperation(statement_set=EM.StatementSet(statements=[statement_track, statement_disposition])))
 
-        statement_asset = EM.Statement(predicate=EM.Predicate(field_path="entity.ontology.template", value=EM.EnumType(EM.Template.ASSET), comparator=EM.Comparator.EQUALITY))
+        statement_asset = EM.Statement(predicate=EM.Predicate(field_path="ontology.template", value=EM.Value(enum_type=EM.EnumType(value=EM.Template.ASSET)), comparator=EM.Comparator(EM.Comparator.EQUALITY)))
 
-        root_statement = EM.Statement(and_=EM.OrOperation(statement_set=EM.StatementSet(statements=[statement_track_and_disposition, statement_asset])))
+        root_statement = EM.Statement(or_=EM.OrOperation(statement_set=EM.StatementSet(statements=[statement_track_and_disposition, statement_asset])))
 
         return root_statement
 
@@ -71,14 +58,9 @@ class EntityStreamer:
             root_statement = self.create_statement()
             try:
                 async for response in entity_manager_stub.stream_entity_components(
-                    EM.StreamEntityComponentsRequest(include_all_components=True, filter=#EM.Statement(predicate=EM.Predicate(field_path="ontology.template", value=EM.Value(enum_type=EM.EnumType(value=EM.Template.TRACK)), comparator=EM.Comparator(EM.Comparator.EQUALITY)))),
+                    EM.StreamEntityComponentsRequest(include_all_components=True, filter=root_statement, rate_limit=EM.RateLimit(update_per_entity_limit_ms=1000)),
                     metadata=self.generated_metadata
                 ):
-                    self.logger.debug(f"lattice api stream entities response {response}")
                     yield response
             except Exception as error:
                 self.logger.error(f"lattice api stream entities error {error}")
-
-
-    def start(self):
-        pass

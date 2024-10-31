@@ -27,7 +27,7 @@ async def main_async(cfg):
     logging.basicConfig()
     logger = logging.getLogger(__name__)
     logger.setLevel(logging.DEBUG)
-    logger.info("starting entity auto recon system")
+    logger.info("starting Entity Auto Recon System")
     logger.info(f"got config path {cfg}")
 
     # Set up the application with the config
