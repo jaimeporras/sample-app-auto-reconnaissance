@@ -10,7 +10,7 @@ class Arbiter:
         self.logger = logger
         self.entity_streamer = EntityStreamer(logger, lattice_ip, bearer_token)
         self.cache_manager = CacheManager()
-        #self.tasker = Tasker()
+        self.tasker = Tasker(logger, lattice_ip, bearer_token)
  
     async def start(self):
         try:
@@ -22,8 +22,9 @@ class Arbiter:
 
     async def consume_entities(self):
         while True:
-            async for response in self.entity_streamer.stream_entities():
-                self.cache_manager.handle_response(response)
+            async for entity_event in self.entity_streamer.stream_entities():
+                self.logger.info(f"KEVFIX STREAM RESPONSE {entity_event}")
+                self.cache_manager.handle_response(entity_event)
     
     async def recon_job(self):
         while True:
@@ -38,6 +39,7 @@ class Arbiter:
         for asset in assets:
             for track in tracks:
                 distance = DistanceCalculator.calculate(asset, track)
-                # self.logger.info(f"KEVFIX sanity check DISTANCE {distance}")
                 if distance <= 30000:
                     self.logger.info(f"KEVFIX DISTANCE {distance}")
+                    self.tasker.create_task(asset.to_json())
+                    #self.tasker.investigate(asset, track)

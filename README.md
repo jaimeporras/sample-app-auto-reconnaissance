@@ -16,11 +16,28 @@ cd ext-auto-recon
 
 > Optional: Initialize a virtual environment
 > ```bash
-> python3 -m venv .venv
+> python3.9 -m venv .venv
 > source .venv/bin/activate
 > ```
 
 #### Install dependencies
+
+`openapi-generator generate -i anduril/taskmanager/v1/task_manager_openapi.pub.yaml -g python -o task_manager_py`
+`openapi-generator generate -i anduril/entitymanager/v1/entity_manager_openapi.pub.yaml -g python -o entity_manager_py`
+
+go in to the directories, change the name in the `setup.py` file to a better and more descriptive name (EntityManager, TaskManager, etc)
+
+in each package, change the name of the `openapi_client` subdirectory to a better and more descriptive name (entity_manager, task_manager, etc)
+
+`pip install setuptools`
+
+transport the task manager and entity manager python package over to your project directory from where you ran the openapi-generator generate command
+`pip install /path/to/managers`
+
+
+
+
+
 
 *** We currently use `anduril-python` for `StreamEntityComponents` in the `EntityManagerAPI` within the gRPC SDK, when the corresponding component is added to the REST SDK, we will migrate this business logic over to utilize the REST SDK instead ***
 
@@ -41,3 +58,4 @@ pip install -r requirements.txt
 ```bash
 python3 src/main.py --config var/config.yml
 ```
+

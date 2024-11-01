@@ -1,13 +1,18 @@
+import asyncio
 from logging import Logger
-from grpclib.client import Channel
-import anduril.entitymanager.v1 as EM
-import anduril.ontology.v1 as ONTOLOGY
+# from grpclib.client import Channel
+#from entity_manager import EntityApi, Entity, ApiClient, Configuration
+import entity_manager as EM
+#from openapi_client.api.entity_api import EntityApi
 
 class EntityStreamer:
     def __init__(self, logger: Logger, lattice_ip: str, bearer_token: str):
         self.logger = logger
-        self.lattice_ip = lattice_ip
-        self.generated_metadata = {"authorization": "Bearer " + bearer_token}
+        #self.lattice_ip = lattice_ip
+        #self.generated_metadata = {"authorization": "Bearer " + bearer_token}
+        self.config = EM.Configuration(host='https://dev.tdm.anduril.com/entitymanager/', access_token=bearer_token)
+        self.api_client = EM.ApiClient(configuration=self.config)
+
 
     def create_statement(self) -> EM.Statement:
         """
@@ -48,11 +53,30 @@ class EntityStreamer:
 
         return root_statement
 
+    
     async def stream_entities(self):
+        entity_api = EM.EntityApi(api_client=self.api_client)
+        entity_event_request = EM.EntityEventRequest(sessionToken="")
+        while True:
+            try:
+
+                response = entity_api.long_poll_entity_events(entity_event_request)
+                if response.entity_events:
+                    self.logger.info(f"lattice api stream entities {response.entity_events}")
+                    for event in response.entity_events:
+                        yield event
+                await asyncio.sleep(1)
+            except Exception as error:
+                self.logger.error(f"lattice api stream entities error {error}")
+                await asyncio.sleep(60)
+
+    
+    #async def stream_entities(self):
         """
         Asynchronously retrieves entities with 1) the ontology.template field set to TRACK and mil_view.disposition set to HOSTILE or SUSPICIOUS, or 2) the ontology.template field set to ASSET from the Lattice API. Usable wrapper around the stream_entity_components API
         """
         # open secure channel and create service instance
+        """
         async with Channel(host=self.lattice_ip, port=443, ssl=True) as channel:
             entity_manager_stub = EM.EntityManagerApiStub(channel)
             root_statement = self.create_statement()
@@ -64,3 +88,4 @@ class EntityStreamer:
                     yield response
             except Exception as error:
                 self.logger.error(f"lattice api stream entities error {error}")
+        """
