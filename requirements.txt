@@ -4,5 +4,5 @@ PyYAML==6.0.2
 geopy==2.3.0
 
 # TODO REPLACE WITH YOUR OWN PATH TO THE OPENAPI-GENERATOR GENERATED REST SDK DIRECTORIES
-/Users/kli2/sources/andurilapis/public-apis/entity_manager_py
-/Users/kli2/sources/andurilapis/public-apis/task_manager_py
+/Users/kli2/sources/andurilapis/lattice_sdk_py/entities_api
+/Users/kli2/sources/andurilapis/lattice_sdk_py/tasks_api

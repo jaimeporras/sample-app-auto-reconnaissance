@@ -1,5 +1,5 @@
 from geopy.distance import geodesic
-import anduril.entitymanager.v1 as EM
+import entities_api as EM
 
 class DistanceCalculator:
     @staticmethod
@@ -17,5 +17,5 @@ class DistanceCalculator:
         """
         point1 = (asset.location.position.latitude_degrees, asset.location.position.longitude_degrees)
         point2 = (track.location.position.latitude_degrees, track.location.position.longitude_degrees)
-        distance = geodesic(point1, point2).meters
+        distance = geodesic(point1, point2).miles
         return distance

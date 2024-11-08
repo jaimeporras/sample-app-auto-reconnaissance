@@ -1,14 +1,16 @@
 import asyncio
 from logging import Logger
-from services.entity_streamer import EntityStreamer
+from services.entity_handler import EntityHandler
 from services.cache_manager import CacheManager
 from services.tasker import Tasker
 from utils.distance_calculator import DistanceCalculator
 
+DISTANCE_THRESHOLD_MILES = 100 #10
+
 class Arbiter:
     def __init__(self, logger: Logger, lattice_ip: str, bearer_token: str, update_rate_seconds: int):
         self.logger = logger
-        self.entity_streamer = EntityStreamer(logger, lattice_ip, bearer_token)
+        self.entity_handler = EntityHandler(logger, lattice_ip, bearer_token)
         self.cache_manager = CacheManager()
         self.tasker = Tasker(logger, lattice_ip, bearer_token)
  
@@ -22,24 +24,52 @@ class Arbiter:
 
     async def consume_entities(self):
         while True:
-            async for entity_event in self.entity_streamer.stream_entities():
-                self.logger.info(f"KEVFIX STREAM RESPONSE {entity_event}")
-                self.cache_manager.handle_response(entity_event)
+            async for entity in self.entity_handler.stream_entities():
+                self.cache_manager.handle_response(entity)
     
     async def recon_job(self):
         while True:
             self.logger.info("KEVFIX RECON JOB")
-            self.calculate_within_range()
+            self.arbitrate_isr()
             await asyncio.sleep(1)
 
-    def calculate_within_range(self):
+    def within_range(self, asset, track) -> bool:
+        distance = DistanceCalculator.calculate(asset, track)
+        return distance <= DISTANCE_THRESHOLD_MILES
+    
+    def check_in_progress(self, asset, track) -> bool:
+        skip = False
+        asset_task_id = self.cache_manager.get_asset_tasks(asset.entity_id)
+        if asset_task_id:
+            asset_in_progress = self.tasker.check_availability(asset_task_id)
+            if asset_in_progress:
+                skip = True
+            else:
+                self.cache_manager.remove_asset_task(asset.entity_id)
+        track_task_id = self.cache_manager.get_track_tasks(track.entity_id)
+        if track_task_id:
+            track_in_progress = self.tasker.check_availability(track_task_id)
+            if track_in_progress:
+                skip = True
+            else:
+                self.cache_manager.remove_track_task(track.entity_id)
+        return skip
+
+    def arbitrate_isr(self):
         assets = self.cache_manager.get_assets()
         tracks = self.cache_manager.get_tracks()
         self.logger.info(f"KEVFIX ASSET SIZE {len(assets)} TRACK SIZE {len(tracks)}")
         for asset in assets:
             for track in tracks:
-                distance = DistanceCalculator.calculate(asset, track)
-                if distance <= 30000:
-                    self.logger.info(f"KEVFIX DISTANCE {distance}")
-                    self.tasker.create_task(asset.to_json())
-                    #self.tasker.investigate(asset, track)
+                if self.within_range(asset, track) and track.mil_view.disposition not in ["DISPOSITION_FRIENDLY", "DISPOSITION_ASSUMED_FRIENDLY"]:
+                    # self.logger.info(f"KEVFIX ASSET {asset} \n TRACK {track}")
+                    self.logger.info(f"KEVFIX disposition: {track.mil_view.disposition}")
+                    if track.mil_view.disposition not in ["DISPOSITION_SUSPICIOUS", "DISPOSITION_HOSTILE"]:
+                        self.logger.info(f"KEVFIX have to override Track {track.entity_id}")
+                        self.entity_handler.override_track_disposition(track)
+                    if self.check_in_progress(asset, track):
+                        continue
+                    if self.cache_manager.get_asset_tasks(asset.entity_id) is None and self.cache_manager.get_track_tasks(track.entity_id) is None:
+                        task_id = self.tasker.investigate(asset, track)
+                        self.cache_manager.add_asset_task(asset, task_id)
+                        self.cache_manager.add_track_task(track, task_id)

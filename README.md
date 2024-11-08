@@ -16,23 +16,15 @@ cd ext-auto-recon
 
 > Optional: Initialize a virtual environment
 > ```bash
-> python3.9 -m venv .venv
+> python -m venv .venv
 > source .venv/bin/activate
 > ```
 
+Ensure you have a local version of Python with a version of 3.9 or higher
+
 #### Install dependencies
 
-`openapi-generator generate -i anduril/taskmanager/v1/task_manager_openapi.pub.yaml -g python -o task_manager_py`
-`openapi-generator generate -i anduril/entitymanager/v1/entity_manager_openapi.pub.yaml -g python -o entity_manager_py`
-
-go in to the directories, change the name in the `setup.py` file to a better and more descriptive name (EntityManager, TaskManager, etc)
-
-in each package, change the name of the `openapi_client` subdirectory to a better and more descriptive name (entity_manager, task_manager, etc)
-
-`pip install setuptools`
-
-transport the task manager and entity manager python package over to your project directory from where you ran the openapi-generator generate command
-`pip install /path/to/managers`
+Follow the guide [here](https://dev.tdm.anduril.com/docs/guide/generate-http-sdks) to generate your Python HTTP SDK
 
 
 
