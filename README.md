@@ -33,7 +33,7 @@ Ensure you have a local version of Python with a version of 3.9 or higher
 
 #### Install dependencies
 
-Follow the guide [here](https://dev.tdm.anduril.com/docs/guide/generate-http-sdks) to generate your Python HTTP SDK.
+Follow the guide [here](https://docs.anduril.com/guide/generate-http-sdks) to generate your Python HTTP SDK.
 
 Navigate to the `requirements.txt` file and change the path to the SDKs according to where you have outputted the `entities_api` and `tasks_api` packages. After updating these paths, run the following command:
 
