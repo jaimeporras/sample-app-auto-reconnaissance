@@ -9,8 +9,6 @@ def validate_config(cfg):
         raise ValueError("missing lattice-ip")
     if "lattice-bearer-token" not in cfg:
         raise ValueError("missing lattice-bearer-token")
-    if "entity-update-rate-seconds" not in cfg:
-        raise ValueError("missing entity-update-rate-seconds")
 
 def parse_arguments():
     parser = argparse.ArgumentParser(description='Entity Recon System')
@@ -25,19 +23,23 @@ def read_config(config_path):
 
 async def main_async(cfg):
     logging.basicConfig()
-    logger = logging.getLogger(__name__)
+    logger = logging.getLogger("EARS")
     logger.setLevel(logging.DEBUG)
     logger.info("starting Entity Auto Recon System")
-    logger.info(f"got config path {cfg}")
-
-    # Set up the application with the config
-    arbiter = Arbiter(logger, cfg["lattice-ip"], cfg["lattice-bearer-token"], cfg["entity-update-rate-seconds"])
-    await arbiter.start()
+    try:
+        # Set up the application with the config
+        arbiter = Arbiter(logger, cfg["lattice-ip"], cfg["lattice-bearer-token"])
+        await arbiter.start()
+    except (KeyboardInterrupt, SystemExit):
+        logger.info("shutting down Entity Auto Recon System")
 
 def main():
     args = parse_arguments()
     cfg = read_config(args.config)
-    run(main_async(cfg))
+    try:
+        run(main_async(cfg))
+    except KeyboardInterrupt:
+        print("shutting down Entity Auto Recon System")
 
 
 if __name__ == "__main__":

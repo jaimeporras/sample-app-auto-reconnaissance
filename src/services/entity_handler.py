@@ -41,11 +41,9 @@ class EntityHandler:
             try:
                 response = self.entity_api.long_poll_entity_events(entity_event_request)
                 if response.entity_events:
-                    # self.logger.info(f"lattice api stream entities {response.entity_events}")
                     for entity_event in response.entity_events:
                         entity = entity_event.entity
                         if self.filter_entity(entity):
-                            # self.logger.info("KEVFIX entity is either asset or non-friendly track")
                             yield entity
                 await asyncio.sleep(0.1)
             except Exception as error:

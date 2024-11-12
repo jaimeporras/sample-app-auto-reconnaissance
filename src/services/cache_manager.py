@@ -28,6 +28,7 @@ class CacheManager:
         self.asset_task.remove(entity_id)
 
     def remove_track_task(self, entity_id: str):
+        print("removing track task")
         self.track_task.remove(entity_id)
         
     def get_assets(self) -> list[EM.Entity]:

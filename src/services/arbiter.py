@@ -5,22 +5,29 @@ from services.cache_manager import CacheManager
 from services.tasker import Tasker
 from utils.distance_calculator import DistanceCalculator
 
-DISTANCE_THRESHOLD_MILES = 100 #10
+DISTANCE_THRESHOLD_MILES = 10
 
 class Arbiter:
-    def __init__(self, logger: Logger, lattice_ip: str, bearer_token: str, update_rate_seconds: int):
+    def __init__(self, logger: Logger, lattice_ip: str, bearer_token: str):
         self.logger = logger
         self.entity_handler = EntityHandler(logger, lattice_ip, bearer_token)
         self.cache_manager = CacheManager()
         self.tasker = Tasker(logger, lattice_ip, bearer_token)
  
     async def start(self):
-        try:
-            asyncio.create_task(self.consume_entities())
+        tasks = [
+            asyncio.create_task(self.consume_entities()),
             asyncio.create_task(self.recon_job())
-            await asyncio.Event().wait()
-        except (KeyboardInterrupt, SystemExit):
-            self.logger.info("shutting down Entity Auto Recon System")
+        ]
+        try:
+            await asyncio.gather(*tasks, return_exceptions=True)
+        except KeyboardInterrupt:
+            self.logger.info("KeyboardInterrupt caught: cancelling tasks...")
+            for task in tasks:
+                task.cancel()
+            await asyncio.gather(*tasks, return_exceptions=True)
+        finally:
+            self.logger.info("Shutting down Entity Auto Recon System")
 
     async def consume_entities(self):
         while True:
@@ -29,7 +36,6 @@ class Arbiter:
     
     async def recon_job(self):
         while True:
-            self.logger.info("KEVFIX RECON JOB")
             self.arbitrate_isr()
             await asyncio.sleep(1)
 
@@ -58,16 +64,15 @@ class Arbiter:
     def arbitrate_isr(self):
         assets = self.cache_manager.get_assets()
         tracks = self.cache_manager.get_tracks()
-        self.logger.info(f"KEVFIX ASSET SIZE {len(assets)} TRACK SIZE {len(tracks)}")
+        self.logger.info(f"# of assets being tracked: {len(assets)}, # of tracks being tracked: {len(tracks)}")
         for asset in assets:
             for track in tracks:
                 if self.within_range(asset, track) and track.mil_view.disposition not in ["DISPOSITION_FRIENDLY", "DISPOSITION_ASSUMED_FRIENDLY"]:
-                    # self.logger.info(f"KEVFIX ASSET {asset} \n TRACK {track}")
-                    self.logger.info(f"KEVFIX disposition: {track.mil_view.disposition}")
+                    self.logger.info(f"ASSET WITHIN RANGE OF NON-FRIENDLY TRACK")
                     if track.mil_view.disposition not in ["DISPOSITION_SUSPICIOUS", "DISPOSITION_HOSTILE"]:
-                        self.logger.info(f"KEVFIX have to override Track {track.entity_id}")
                         self.entity_handler.override_track_disposition(track)
                     if self.check_in_progress(asset, track):
+                        self.logger.info(f"INVESTIGATION ALREADY IN PROGRESS - SKIPPING")
                         continue
                     if self.cache_manager.get_asset_tasks(asset.entity_id) is None and self.cache_manager.get_track_tasks(track.entity_id) is None:
                         task_id = self.tasker.investigate(asset, track)
