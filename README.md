@@ -16,7 +16,10 @@ The following endpoints are showcased in this application:
 
 ## How to run locally
 
-#### First clone the repository
+#### Before you begin
+Ensure you have [set up your development environment](https://docs.anduril.com/category/get-started)
+
+#### Clone the repository
 
 ```bash
 git clone https://github.com/anduril/ext-auto-recon.git ext-auto-recon
