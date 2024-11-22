@@ -22,8 +22,8 @@ Ensure you have [set up your development environment](https://docs.anduril.com/c
 #### Clone the repository
 
 ```bash
-git clone https://github.com/anduril/ext-auto-recon.git ext-auto-recon
-cd ext-auto-recon
+git clone https://github.com/anduril/sample-auto-recon.git sample-auto-recon
+cd sample-auto-recon
 ```
 
 > Optional: Initialize a virtual environment
