@@ -1,4 +1,4 @@
 # lattice dns/ip
-lattice-ip: https://dev.tdm.anduril.com
+lattice-ip: <LATTICE IP>
 # lattice-bearer-token
-lattice-bearer-token: eyJhbGciOiJIUzI1NiJ9.eyJleHAiOjE3MzUyNDk3OTUsImlzcyI6ImFuZHVyaWwiLCJqdGkiOiIyYzgxMWVmMS03N2U3LTQ0MzctOGI3MC01NjQ5NTBiMmM2MzgiLCJuYmYiOjE3MzI2NTc3ODUsInN1YiI6InVzZXIvY2M3ZjA1YjctNGJiMC00YTRmLWE1ZmMtNGY2YWI4MDk3OGFhIn0.esi-c9ebl6UoJLQ4CF5sXHtB-ifesagTup6DRTmsg_M
+lattice-bearer-token: <LATTICE BEARER TOKEN>
