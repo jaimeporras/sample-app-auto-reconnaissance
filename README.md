@@ -1,7 +1,4 @@
 # Auto Recon
-Author: Kevin Li / Anduril Industries
-Date: 2024-10-29
-Version: 0.0.1
 
 ## Description
 This is a sample application showcasing how to use Lattice HTTP SDKs to perform Entity Auto Reconnaissance.
@@ -26,13 +23,13 @@ git clone https://github.com/anduril/sample-auto-recon.git sample-auto-recon
 cd sample-auto-recon
 ```
 
+Ensure you have a local version of Python with a version of 3.9 or higher
+
 > Optional: Initialize a virtual environment
 > ```bash
 > python -m venv .venv
 > source .venv/bin/activate
 > ```
-
-Ensure you have a local version of Python with a version of 3.9 or higher
 
 #### Install dependencies
 
@@ -51,7 +48,7 @@ Modify the configuration file in `var/config.yml` by adding your Lattice IP and 
 You can run the program by running the following command:
 
 ```bash
-python3 src/main.py --config var/config.yml
+python src/main.py --config var/config.yml
 ```
 
 Navigate to your Lattice UI and observe the `Active Tasks` tab. When assets come within range of a non-friendly track, an investigation task will be created if it hasn't been done so already.
