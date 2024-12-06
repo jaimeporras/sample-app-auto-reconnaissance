@@ -1,20 +1,16 @@
 import argparse
 import asyncio
 import logging
-from asyncio import run
 from datetime import datetime, timezone, timedelta
-from logging import Logger
 
-import entities_api
 import entities_api as anduril_entities
 import tasks_api as anduril_tasks
 import yaml
-from tasks_api import AgentRequest
 
 
 class SimulatedAsset:
     def __init__(self,
-                 logger: Logger,
+                 logger: logging.Logger,
                  entities_api_client: anduril_entities.EntityApi,
                  tasks_api_client: anduril_tasks.TaskApi,
                  entity_id: str,
@@ -54,39 +50,39 @@ class SimulatedAsset:
             await asyncio.sleep(5)
 
     def generate_asset_entity(self):
-        return entities_api.Entity(
+        return anduril_entities.Entity(
             entity_id=self.entity_id,
             is_live=True,
             expiry_time=datetime.now(timezone.utc) + timedelta(seconds=150),
-            aliases=entities_api.Aliases(
+            aliases=anduril_entities.Aliases(
                 name=f"Simulated Asset {self.entity_id}",
             ),
-            location=entities_api.Location(
-                position=entities_api.Position(
+            location=anduril_entities.Location(
+                position=anduril_entities.Position(
                     latitude_degrees=self.location["latitude"],
                     longitude_degrees=self.location["longitude"]
                 )
             ),
-            mil_view=entities_api.MilView(
+            mil_view=anduril_entities.MilView(
                 disposition="DISPOSITION_FRIENDLY",
                 environment="ENVIRONMENT_SURFACE",
             ),
-            provenance=entities_api.Provenance(
+            provenance=anduril_entities.Provenance(
                 data_type="DDG",
                 integration_name="Simulated Asset",
                 source_update_time=datetime.now(timezone.utc),
             ),
-            ontology=entities_api.Ontology(
+            ontology=anduril_entities.Ontology(
                 template="TEMPLATE_ASSET",
                 platform_type="USV"
             ),
-            task_catalog=entities_api.TaskCatalog(
+            task_catalog=anduril_entities.TaskCatalog(
                 task_definitions=[
                     # entities_api.TaskDefinition(
                     #     task_specification_url="type.googleapis.com/anduril.task.v2.Investigate",
                     #     display_name="Investigate"
                     # )
-                    entities_api.TaskDefinition(
+                    anduril_entities.TaskDefinition(
                         task_specification_url="type.googleapis.com/anduril.tasks.v2.Marshal",
                         display_name="Investigate"
                     )
@@ -111,7 +107,7 @@ class SimulatedAsset:
             except Exception as error:
                 self.logger.error(f"simulated asset listening agent error {error}")
 
-    async def process_task_event(self, agent_request: AgentRequest):
+    async def process_task_event(self, agent_request: anduril_tasks.AgentRequest):
         self.logger.info(f"received task request {agent_request}")
         if agent_request.cancel_request:
             self.logger.info(f"received cancel request, sending cancel confirmation")
@@ -180,7 +176,7 @@ def main():
         {"latitude": 1, "longitude": 1})
 
     try:
-        run(asset.run())
+        asyncio.run(asset.run())
     except KeyboardInterrupt:
         logger.info("keyboard interrupt detected")
     pass
