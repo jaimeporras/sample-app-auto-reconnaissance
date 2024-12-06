@@ -7,6 +7,9 @@ import entities_api as anduril_entities
 import tasks_api as anduril_tasks
 import yaml
 
+EXPIRY_OFFSET = 15
+REFRESH_INTERVAL = 5
+
 
 class SimulatedAsset:
     def __init__(self,
@@ -47,13 +50,13 @@ class SimulatedAsset:
             except Exception as error:
                 self.logger.error(f"lattice api stream entities error {error}")
 
-            await asyncio.sleep(5)
+            await asyncio.sleep(REFRESH_INTERVAL)
 
     def generate_asset_entity(self):
         return anduril_entities.Entity(
             entity_id=self.entity_id,
             is_live=True,
-            expiry_time=datetime.now(timezone.utc) + timedelta(seconds=150),
+            expiry_time=datetime.now(timezone.utc) + timedelta(seconds=EXPIRY_OFFSET),
             aliases=anduril_entities.Aliases(
                 name=f"Simulated Asset {self.entity_id}",
             ),
@@ -68,8 +71,8 @@ class SimulatedAsset:
                 environment="ENVIRONMENT_SURFACE",
             ),
             provenance=anduril_entities.Provenance(
-                data_type="DDG",
-                integration_name="Simulated Asset",
+                data_type="Simulated Asset",
+                integration_name="auto-reconnaissance-sample-app",
                 source_update_time=datetime.now(timezone.utc),
             ),
             ontology=anduril_entities.Ontology(

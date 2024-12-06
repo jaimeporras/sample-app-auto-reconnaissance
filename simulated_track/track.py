@@ -20,7 +20,7 @@ def validate_config(cfg):
 
 
 def parse_arguments():
-    parser = argparse.ArgumentParser(description='Simulated Asset')
+    parser = argparse.ArgumentParser(description='Simulated Track')
     parser.add_argument('--config', type=str, help='Path to the configuration file', required=True)
     return parser.parse_args()
 

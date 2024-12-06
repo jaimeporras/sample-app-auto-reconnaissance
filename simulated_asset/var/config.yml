@@ -1,4 +1,4 @@
 # lattice dns/ip
-lattice-ip: <LATTICE IP>
+lattice-ip: <LATTICE DNS/IP>
 # lattice-bearer-token
 lattice-bearer-token: <LATTICE BEARER TOKEN>
