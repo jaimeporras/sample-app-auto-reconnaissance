@@ -1,9 +1,10 @@
+import entities_api as anduril_entities
 from geopy.distance import geodesic
-import entities_api as EM
+
 
 class DistanceCalculator:
     @staticmethod
-    def calculate(asset: EM.Entity, track: EM.Entity) -> float:
+    def calculate(asset: anduril_entities.Entity, track: anduril_entities.Entity) -> float:
         """
         Calculate the distance between two points on Earth using the latitude and longitude coordinates of two Entities.
         One thing to note is that this calculation does not take into account the altitude of the entities.

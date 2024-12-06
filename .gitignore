@@ -18,7 +18,7 @@ lib/
 lib64/
 parts/
 sdist/
-auto-reconnaisance/var/
+auto-reconnaissance/var/
 wheels/
 share/python-wheels/
 *.egg-info/
