@@ -2,19 +2,26 @@ import argparse
 import asyncio
 import logging
 from asyncio import run
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from logging import Logger
 
 import entities_api
 import entities_api as anduril_entities
+import tasks_api as anduril_tasks
 import yaml
+from tasks_api import AgentRequest
 
 
 class SimulatedAsset:
-    def __init__(self, logger: Logger, entities_api_client: anduril_entities.EntityApi, entity_id: str,
+    def __init__(self,
+                 logger: Logger,
+                 entities_api_client: anduril_entities.EntityApi,
+                 tasks_api_client: anduril_tasks.TaskApi,
+                 entity_id: str,
                  location: dict):
         self.logger = logger
         self.entities_api_client = entities_api_client
+        self.tasks_api_client = tasks_api_client
         self.entity_id = entity_id
         self.location = location
 
@@ -31,23 +38,29 @@ class SimulatedAsset:
                 task.cancel()
             await asyncio.gather(*tasks, return_exceptions=True)
         finally:
-            self.logger.info("Shutting down Simulated Asset {}".format(self.entity_id))
+            self.logger.info(f"Shutting down Simulated Asset {self.entity_id}")
         pass
 
     async def publish_asset(self):
+        self.logger.info(f"starting publish task for simulated asset {self.entity_id}")
         while True:
-            self.entities_api_client.publish_entity_rest(
-                entity=self.generate_asset_entity()
-            )
-            await asyncio.sleep(1)
+            try:
+                self.entities_api_client.publish_entity_rest(
+                    entity=self.generate_asset_entity()
+                )
+            except Exception as error:
+                self.logger.error(f"lattice api stream entities error {error}")
 
-    async def listen_for_tasks(self):
-        pass
+            await asyncio.sleep(5)
 
     def generate_asset_entity(self):
         return entities_api.Entity(
             entity_id=self.entity_id,
             is_live=True,
+            expiry_time=datetime.now(timezone.utc) + timedelta(seconds=150),
+            aliases=entities_api.Aliases(
+                name=f"Simulated Asset {self.entity_id}",
+            ),
             location=entities_api.Location(
                 position=entities_api.Position(
                     latitude_degrees=self.location["latitude"],
@@ -62,9 +75,60 @@ class SimulatedAsset:
                 data_type="DDG",
                 integration_name="Simulated Asset",
                 source_update_time=datetime.now(timezone.utc),
+            ),
+            ontology=entities_api.Ontology(
+                template="TEMPLATE_ASSET",
+                platform_type="USV"
+            ),
+            task_catalog=entities_api.TaskCatalog(
+                task_definitions=[
+                    # entities_api.TaskDefinition(
+                    #     task_specification_url="type.googleapis.com/anduril.task.v2.Investigate",
+                    #     display_name="Investigate"
+                    # )
+                    entities_api.TaskDefinition(
+                        task_specification_url="type.googleapis.com/anduril.tasks.v2.Marshal",
+                        display_name="Investigate"
+                    )
+                ]
             )
         )
-        pass
+
+    async def listen_for_tasks(self):
+        self.logger.info(f"started listen task for tasking simulated asset {self.entity_id}")
+        while True:
+            try:
+                agent_listener = anduril_tasks.AgentListener(
+                    agent_selector=anduril_tasks.EntityIdsSelector(entity_ids=[self.entity_id])
+                )
+                #
+                agent_request = await asyncio.to_thread(
+                    self.tasks_api_client.long_poll_listen_as_agent,
+                    agent_listener=agent_listener
+                )
+                if agent_request:
+                    await self.process_task_event(agent_request)
+            except Exception as error:
+                self.logger.error(f"simulated asset listening agent error {error}")
+
+    async def process_task_event(self, agent_request: AgentRequest):
+        self.logger.info(f"received task request {agent_request}")
+        if agent_request.cancel_request:
+            self.logger.info(f"received cancel request, sending cancel confirmation")
+            try:
+                task_cancel_update = anduril_tasks.TaskStatusUpdate(
+                    new_status=anduril_tasks.TaskStatus(status="STATUS_DONE_NOT_OK"),
+                    author=anduril_tasks.models.Principal(system=anduril_tasks.models.System(entity_id=self.entity_id)),
+                    status_version=2  # Integration is to track its own status version, since we aren't actively
+                    # updating the status, 1 is the current status version, and 2 is the "next" status version
+                )
+                await asyncio.to_thread(
+                    self.tasks_api_client.update_task_status_by_id,
+                    task_id=agent_request.cancel_request.task_id,
+                    task_status_update=task_cancel_update
+                )
+            except Exception as error:
+                self.logger.error(f"simulated asset listening agent error {error}")
 
 
 def validate_config(cfg):
@@ -95,20 +159,32 @@ def main():
 
     args = parse_arguments()
     cfg = read_config(args.config)
+
     entities_configuration = anduril_entities.Configuration(host=f"{cfg['lattice-ip']}/api/v1")
     entities_api_client = anduril_entities.ApiClient(configuration=entities_configuration,
                                                      header_name="Authorization",
                                                      header_value=f"Bearer {cfg['lattice-bearer-token']}")
     entities_api = anduril_entities.EntityApi(api_client=entities_api_client)
 
+    tasks_configuration = anduril_tasks.Configuration(host=f"{cfg['lattice-ip']}/api/v1")
+    tasks_api_client = anduril_tasks.ApiClient(configuration=tasks_configuration,
+                                               header_name="Authorization",
+                                               header_value=f"Bearer {cfg['lattice-bearer-token']}")
+    tasks_api = anduril_tasks.TaskApi(api_client=tasks_api_client)
+
     asset = SimulatedAsset(
         logger,
         entities_api,
+        tasks_api,
         "asset-01",
         {"latitude": 1, "longitude": 1})
 
     try:
         run(asset.run())
     except KeyboardInterrupt:
-        print("shutting down simulated asset")
+        logger.info("keyboard interrupt detected")
     pass
+
+
+if __name__ == "__main__":
+    main()
