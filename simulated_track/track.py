@@ -65,7 +65,7 @@ def start_track_publishing():
     logging.basicConfig()
     logger = logging.getLogger("SIMTRACK")
     logger.setLevel(logging.DEBUG)
-    logger.info("starting simulated asset")
+    logger.info("starting simulated track")
 
     args = parse_arguments()
     cfg = read_config(args.config)

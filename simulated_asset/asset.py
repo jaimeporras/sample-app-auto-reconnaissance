@@ -108,7 +108,7 @@ class SimulatedAsset:
                 if agent_request:
                     await self.process_task_event(agent_request)
             except Exception as error:
-                self.logger.error(f"simulated asset listening agent error {error}")
+                self.logger.error(f"simulated asset task processing error {error}")
 
     async def process_task_event(self, agent_request: anduril_tasks.AgentRequest):
         self.logger.info(f"received task request {agent_request}")
