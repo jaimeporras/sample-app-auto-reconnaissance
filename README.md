@@ -1,12 +1,10 @@
-# Auto Recon
+# Auto Reconnaissance
 
 ## Description
 
 This is a sample application showcasing how to use Lattice HTTP SDKs to perform Entity Auto Reconnaissance.
 
-The program streams incoming entities with the Entities API, determines if there is any non-friendly track within a
-certain distance from the asset, and if so, classifies the track disposition as suspicious and creates an investigation
-task.
+The program streams all incoming entities with the Entities API, determines if there is any non-friendly track within a certain distance from an asset. If this requirement is fulfilled, the auto reconnaissance system classifies the track disposition as suspicious and creates an investigation task for the asset to investigate the track. You will create a pair of a simulated asset and a track for a clear demonstration of this process.
 
 The following endpoints are showcased in this application:
 
@@ -17,9 +15,12 @@ The following endpoints are showcased in this application:
 
 ## How to run locally
 
+#### Prerequisites
+- Python version greater than or equal to 3.9
+
 #### Before you begin
 
-Ensure you have [set up your development environment](https://docs.anduril.com/category/get-started)
+Ensure you have [set up your development environment](https://docs.anduril.com/category/getting-started)
 
 #### Clone the repository
 
@@ -28,38 +29,63 @@ git clone https://github.com/anduril/sample-app-auto-reconnaissance.git sample-a
 cd sample-app-auto-reconnaissance
 ```
 
-Ensure you have a local version of Python with a version of 3.9 or higher
-
 > Optional: Initialize a virtual environment
 > ```bash
 > python -m venv .venv
 > source .venv/bin/activate
 > ```
 
-#### Install dependencies
+#### Install dependencies and configure project
 
 Follow the guide [here](https://docs.anduril.com/guide/generate-http-sdks) to generate your Python HTTP SDK.
 
-Navigate to the `requirements.txt` file and change the path to the SDKs according to where you have outputted the
-`entities_api` and `tasks_api` packages. After updating these paths, run the following command:
-
+1. Navigate to the `requirements.txt` file and change the path to the SDKs according to where you have outputted the `entities_api` and `tasks_api` packages. After updating these paths, run the following command:
 ```bash
 pip install -r requirements.txt
 ```
 
-Modify the configuration file in `var/config.yml` by adding your Lattice IP and your Lattice Bearer Token.
+2. Modify the configuration files for the auto reconnaissance system in `auto-reconnaissance/var/config.yml`, the simulated asset in `simulated_asset/var/config.yml`, and the simulated track in `simulated_track/var/config.yml`.
+* Replace `<YOUR_LATTICE_IP>` and `<YOUR_LATTICE_BEARER_TOKEN>` with your Lattice IP and Lattice Bearer Token
+```
+lattice-ip: <YOUR_LATTICE_IP>
+lattice-bearer-token: <YOUR_LATTICE_BEARER_TOKEN>
+```
+* If you would like to change the latitude and longitude of your simulated asset and track, you can do so in the corresponding config files. The default distance threshold for the auto reconnaissance system is 5 miles. Ensure that the latitude and longitude inputs for your asset and track are within this distance.
+```
+latitude: <YOUR_LATITUDE>
+longitude: <YOUR_LONGITUDE>
+```
 
 #### Run the program
 
-You can run the program by running the following command:
+Open separate terminals to run the following commands. If you are using a virtual environment, ensure that the virtual environment is activated for all terminals.
 
 ```bash
-python src/main.py --config var/config.yml
+python auto-reconnaissance/main.py --config auto-reconnaissance/var/config.yml
 ```
 
-Navigate to your Lattice UI and observe the `Active Tasks` tab. When assets come within range of a non-friendly track,
-an investigation task will be created if it hasn't been done so already.
+```bash
+python simulated_asset/asset.py --config simulated_asset/var/config.yml
+```
 
-To further experiment, you can right-click anywhere in the Common Operational Picture, and select `Add object > Track`.
-Create a track with a non-friendly disposition. When an asset comes within range of this track, you will see the
-disposition change to `DISPOSITION_SUSPICIOUS`, and an investigation task will be created.
+```bash
+python simulated_track/track.py --config simulated_track/var/config.yml
+```
+
+If you are able to do so, navigate to your Lattice UI and observe the `Active Tasks` tab. When assets come within range of a non-friendly track, an investigation task will be created. If you observe the simulated asset and track, you will see that the auto reconnaissance system will classify the track disposition as suspicious, and a task will be created for the asset to investigate the track. 
+
+On the console, you will see the auto reconnaissance system creating a task:
+```
+INFO:EARS:ASSET WITHIN RANGE OF NON-FRIENDLY TRACK
+INFO:EARS:overriding disposition for track $ENTITY_ID
+INFO:EARS:Task created - view Lattice UI, task id is $TASK_ID
+```
+
+Simultaneously, you will see the simulated asset receive the execute request:
+```
+INFO:SIMASSET:received execute request, sending execute confirmation
+```
+
+Afterwards, the auto reconnaissance system will continuously check the status of any tasks being executed.
+
+Congrats, you've tasked an asset to investigate a track!

@@ -4,7 +4,6 @@ import time
 import uuid
 from datetime import datetime, timezone, timedelta
 
-import entities_api
 import entities_api as anduril_entities
 import yaml
 
@@ -17,6 +16,10 @@ def validate_config(cfg):
         raise ValueError("missing lattice-ip")
     if "lattice-bearer-token" not in cfg:
         raise ValueError("missing lattice-bearer-token")
+    if "latitude" not in cfg:
+        raise ValueError("missing latitude")
+    if "longitude" not in cfg:
+        raise ValueError("missing longitude")
 
 
 def parse_arguments():
@@ -32,7 +35,7 @@ def read_config(config_path):
     return cfg
 
 
-def generate_track_entity(entity_id: str) -> entities_api.Entity:
+def generate_track_entity(entity_id: str, latitude: float, longitude: float) -> anduril_entities.Entity:
     return anduril_entities.Entity(
         entity_id=entity_id,
         is_live=True,
@@ -42,8 +45,8 @@ def generate_track_entity(entity_id: str) -> entities_api.Entity:
         ),
         location=anduril_entities.Location(
             position=anduril_entities.Position(
-                latitude_degrees=1.1,
-                longitude_degrees=1.1
+                latitude_degrees=latitude,
+                longitude_degrees=longitude
             )
         ),
         mil_view=anduril_entities.MilView(
@@ -70,7 +73,10 @@ def start_track_publishing():
     args = parse_arguments()
     cfg = read_config(args.config)
 
-    entities_configuration = anduril_entities.Configuration(host=f"{cfg['lattice-ip']}/api/v1")
+    latitude = cfg['latitude']
+    longitude = cfg['longitude']
+
+    entities_configuration = anduril_entities.Configuration(host=f"https://{cfg['lattice-ip']}/api/v1")
     entities_api_client = anduril_entities.ApiClient(configuration=entities_configuration,
                                                      header_name="Authorization",
                                                      header_value=f"Bearer {cfg['lattice-bearer-token']}")
@@ -80,7 +86,7 @@ def start_track_publishing():
 
     while True:
         try:
-            entities_api.publish_entity_rest(entity=generate_track_entity(entity_id))
+            entities_api.publish_entity_rest(entity=generate_track_entity(entity_id, latitude, longitude))
         except Exception as error:
             logger.error(f"error publishing simulated track {error}")
         time.sleep(REFRESH_INTERVAL)

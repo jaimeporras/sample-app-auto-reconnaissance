@@ -64,7 +64,8 @@ class SimulatedAsset:
                 position=anduril_entities.Position(
                     latitude_degrees=self.location["latitude"],
                     longitude_degrees=self.location["longitude"]
-                )
+                ),
+                speedMps=1
             ),
             mil_view=anduril_entities.MilView(
                 disposition="DISPOSITION_FRIENDLY",
@@ -81,12 +82,8 @@ class SimulatedAsset:
             ),
             task_catalog=anduril_entities.TaskCatalog(
                 task_definitions=[
-                    # entities_api.TaskDefinition(
-                    #     task_specification_url="type.googleapis.com/anduril.task.v2.Investigate",
-                    #     display_name="Investigate"
-                    # )
                     anduril_entities.TaskDefinition(
-                        task_specification_url="type.googleapis.com/anduril.tasks.v2.Marshal",
+                        task_specification_url="type.googleapis.com/anduril.tasks.v2.Investigate",
                         display_name="Investigate"
                     )
                 ]
@@ -94,13 +91,12 @@ class SimulatedAsset:
         )
 
     async def listen_for_tasks(self):
-        self.logger.info(f"started listen task for tasking simulated asset {self.entity_id}")
+        self.logger.info(f"starting listen task for tasking simulated asset {self.entity_id}")
         while True:
             try:
                 agent_listener = anduril_tasks.AgentListener(
-                    agent_selector=anduril_tasks.EntityIdsSelector(entity_ids=[self.entity_id])
+                    agent_selector=anduril_tasks.AgentListenerAgentSelector(anduril_tasks.AgentListenerAgentSelectorOneOf(entity_ids=[self.entity_id]))
                 )
-                #
                 agent_request = await asyncio.to_thread(
                     self.tasks_api_client.long_poll_listen_as_agent,
                     agent_listener=agent_listener
@@ -112,7 +108,23 @@ class SimulatedAsset:
 
     async def process_task_event(self, agent_request: anduril_tasks.AgentRequest):
         self.logger.info(f"received task request {agent_request}")
-        if agent_request.cancel_request:
+        if agent_request.execute_request:
+            self.logger.info(f"received execute request, sending execute confirmation")
+            try:
+                task_execute_update = anduril_tasks.TaskStatusUpdate(
+                    new_status=anduril_tasks.TaskStatus(status="STATUS_EXECUTING"),
+                    author=anduril_tasks.models.Principal(system=anduril_tasks.models.System(entity_id=self.entity_id)),
+                    status_version=2  # Integration is to track its own status version, since we aren't actively
+                    # updating the status, 1 is the current status version, and 2 is the "next" status version
+                )
+                await asyncio.to_thread(
+                    self.tasks_api_client.update_task_status_by_id,
+                    task_id=agent_request.execute_request.task.version.task_id,
+                    task_status_update=task_execute_update
+                )
+            except Exception as error:
+                self.logger.error(f"simulated asset listening agent error {error}")
+        elif agent_request.cancel_request:
             self.logger.info(f"received cancel request, sending cancel confirmation")
             try:
                 task_cancel_update = anduril_tasks.TaskStatusUpdate(
@@ -135,6 +147,10 @@ def validate_config(cfg):
         raise ValueError("missing lattice-ip")
     if "lattice-bearer-token" not in cfg:
         raise ValueError("missing lattice-bearer-token")
+    if "latitude" not in cfg:
+        raise ValueError("missing latitude")
+    if "longitude" not in cfg:
+        raise ValueError("missing longitude")
 
 
 def parse_arguments():
@@ -159,13 +175,13 @@ def main():
     args = parse_arguments()
     cfg = read_config(args.config)
 
-    entities_configuration = anduril_entities.Configuration(host=f"{cfg['lattice-ip']}/api/v1")
+    entities_configuration = anduril_entities.Configuration(host=f"https://{cfg['lattice-ip']}/api/v1")
     entities_api_client = anduril_entities.ApiClient(configuration=entities_configuration,
                                                      header_name="Authorization",
                                                      header_value=f"Bearer {cfg['lattice-bearer-token']}")
     entities_api = anduril_entities.EntityApi(api_client=entities_api_client)
 
-    tasks_configuration = anduril_tasks.Configuration(host=f"{cfg['lattice-ip']}/api/v1")
+    tasks_configuration = anduril_tasks.Configuration(host=f"https://{cfg['lattice-ip']}/api/v1")
     tasks_api_client = anduril_tasks.ApiClient(configuration=tasks_configuration,
                                                header_name="Authorization",
                                                header_value=f"Bearer {cfg['lattice-bearer-token']}")
@@ -176,7 +192,7 @@ def main():
         entities_api,
         tasks_api,
         "asset-01",
-        {"latitude": 1, "longitude": 1})
+        {"latitude": cfg['latitude'], "longitude": cfg['longitude']})
 
     try:
         asyncio.run(asset.run())

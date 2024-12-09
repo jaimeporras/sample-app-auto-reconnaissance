@@ -1,13 +1,13 @@
 import asyncio
 from logging import Logger
 
-from utils import DistanceCalculator
+from utils.distance_calculator import DistanceCalculator
 
-from cache_manager import CacheManager
-from entity_handler import EntityHandler
-from tasker import Tasker
+from services.cache_manager import CacheManager
+from services.entity_handler import EntityHandler
+from services.tasker import Tasker
 
-DISTANCE_THRESHOLD_MILES = 10
+DISTANCE_THRESHOLD_MILES = 5
 
 
 class Arbiter:
@@ -50,14 +50,14 @@ class Arbiter:
         skip = False
         asset_task_id = self.cache_manager.get_asset_tasks(asset.entity_id)
         if asset_task_id:
-            asset_in_progress = self.tasker.check_availability(asset_task_id)
+            asset_in_progress = self.tasker.check_executing(asset_task_id)
             if asset_in_progress:
                 skip = True
             else:
                 self.cache_manager.remove_asset_task(asset.entity_id)
         track_task_id = self.cache_manager.get_track_tasks(track.entity_id)
         if track_task_id:
-            track_in_progress = self.tasker.check_availability(track_task_id)
+            track_in_progress = self.tasker.check_executing(track_task_id)
             if track_in_progress:
                 skip = True
             else:

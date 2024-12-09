@@ -8,7 +8,7 @@ import entities_api as anduril_entities
 class EntityHandler:
     def __init__(self, logger: Logger, lattice_ip: str, bearer_token: str):
         self.logger = logger
-        self.config = anduril_entities.Configuration(host=f"{lattice_ip}/api/v1")
+        self.config = anduril_entities.Configuration(host=f"https://{lattice_ip}/api/v1")
         self.api_client = anduril_entities.ApiClient(configuration=self.config, header_name="Authorization",
                                                      header_value=f"Bearer {bearer_token}")
         self.entity_api = anduril_entities.EntityApi(api_client=self.api_client)
@@ -37,7 +37,7 @@ class EntityHandler:
             return False
 
     async def stream_entities(self):
-        entity_event_request = anduril_entities.EntityEventRequest()
+        entity_event_request = anduril_entities.EntityEventRequest(sessionToken="")
         while True:
             try:
                 response = self.entity_api.long_poll_entity_events(entity_event_request)
@@ -51,7 +51,7 @@ class EntityHandler:
                 self.logger.error(f"lattice api stream entities error {error}")
                 await asyncio.sleep(30)
 
-    def override_track_disposition(self, track: EM.Entity):
+    def override_track_disposition(self, track: anduril_entities.Entity):
         try:
             self.logger.info(f"overriding disposition for track {track.entity_id}")
             entity_id = track.entity_id

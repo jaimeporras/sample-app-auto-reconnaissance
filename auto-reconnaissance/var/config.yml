@@ -2,6 +2,3 @@
 lattice-ip: <LATTICE DNS/IP>
 # lattice-bearer-token
 lattice-bearer-token: <LATTICE BEARER TOKEN>
-# track latitude and longitude
-latitude: 1.03
-longitude: 1.03

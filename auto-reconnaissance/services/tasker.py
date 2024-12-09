@@ -7,7 +7,7 @@ import tasks_api as anduril_tasks
 class Tasker:
     def __init__(self, logger: Logger, lattice_ip: str, bearer_token: str):
         self.logger = logger
-        self.config = anduril_tasks.Configuration(host=f"{lattice_ip}/api/v1")
+        self.config = anduril_tasks.Configuration(host=f"https://{lattice_ip}/api/v1")
         self.api_client = anduril_tasks.ApiClient(configuration=self.config, header_name="Authorization",
                                                   header_value=f"Bearer {bearer_token}")
         self.task_api = anduril_tasks.TaskApi(api_client=self.api_client)
@@ -53,11 +53,11 @@ class Tasker:
             self.logger.error(f"task creation error {e}")
             raise e
 
-    def check_availability(self, task_id: str) -> bool:
+    def check_executing(self, task_id: str) -> bool:
         try:
             returned_task = self.task_api.get_task_by_id(task_id=task_id)
             self.logger.info(f"Current task status for this task_id is {returned_task.status.status}")
-            return returned_task.status == "STATUS_DONE_OK"
+            return returned_task.status.status == "STATUS_EXECUTING"
         except Exception as e:
             self.logger.error(f"task creation error {e}")
             raise e
