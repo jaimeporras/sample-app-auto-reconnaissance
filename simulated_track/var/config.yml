@@ -1,7 +1,12 @@
 # lattice dns/ip (without `https://` protocol prefix)
-lattice-ip: <LATTICE DNS/IP>
+lattice-ip: lattice-4ba6c.env.sandboxes.developer.anduril.com
+
 # lattice-bearer-token
-lattice-bearer-token: <LATTICE BEARER TOKEN>
+lattice-bearer-token: eyJhbGciOiJIUzI1NiJ9.eyJleHAiOjE3NTYyODg1MDQsImlzcyI6ImFuZHVyaWwiLCJqdGkiOiI2MjNlNzY3NC02ODRmLTQwM2ItYTU2ZS1mNTQyZWQ1ZGFmMTQiLCJuYmYiOjE3NDc2NDg0OTQsInN1YiI6InVzZXIvMGUyM2ViNjktMzQxNS00MWFmLTk3N2QtMzIzOTc0ODBlYzA1In0.q-9ThOur9om0hPdOr4mnGcwkYPYmCKnInPMpeFTcAF4
+
+# sandbox bearer token 
+sandbox-token: eyJhbGciOiJIUzI1NiJ9.eyJleHAiOjE3NTU0Mjk2MTgsImlzcyI6ImFuZHVyaWwiLCJqdGkiOiIzN2E3N2EwNS0xYTI4LTRjMDEtOGZiZi1lMDlkZmRiMGMxNTQiLCJuYmYiOjE3NDc2NTM2MDgsInN1YiI6InVzZXIvMGZjNWNjMjEtMjc1YS00N2E0LTgyMjEtNjE4MjE3Y2M2ZDI5In0.mxO-jfiy-Hwq554BDB4skxagxEISqVLXNkALF-JTKEg
+
 # track latitude and longitude
 latitude: 1.03
 longitude: 1.03

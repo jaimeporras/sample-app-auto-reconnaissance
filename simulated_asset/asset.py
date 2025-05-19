@@ -50,7 +50,6 @@ class SimulatedAsset:
                 )
             except Exception as error:
                 self.logger.error(f"lattice api stream entities error {error}")
-
             await asyncio.sleep(REFRESH_INTERVAL)
 
     def generate_asset_entity(self):
@@ -65,7 +64,7 @@ class SimulatedAsset:
                 position=anduril_entities.Position(
                     latitudeDegrees=self.location["latitude"],
                     longitudeDegrees=self.location["longitude"],
-                    altitudeHaeMeters=55 # arbitrary value so asset is above mean sea level
+                    altitudeHaeMeters=55
                 ),
                 speedMps=1,
                 velocityEnu=anduril_entities.ENU(
@@ -119,14 +118,9 @@ class SimulatedAsset:
             self.logger.info(f"received execute request, sending execute confirmation")
             try:
                 task_execute_update = anduril_tasks.TaskStatusUpdate(
-                    # For an extenesive list of supported task status values, reference 
-                    # https://docs.anduril.com/reference/models/taskmanager/v1/task#:~:text=of%20last%20update.-,statusTaskStatus,-The%20status%20of
                     new_status=anduril_tasks.TaskStatus(status="STATUS_EXECUTING"),
                     author=anduril_tasks.models.Principal(system=anduril_tasks.models.System(entity_id=self.entity_id)),
-                    status_version=STATUS_VERSION_COUNTER  # Integration is to track its own status version. This version number 
-                    # increments to indicate the task's current stage in its status lifecycle. Whenever a task's status updates, 
-                    # the status version increments by one. Any status updates received with a lower status version number than 
-                    # what is known are considered stale and ignored.
+                    status_version=STATUS_VERSION_COUNTER
                 )
                 await asyncio.to_thread(
                     self.tasks_api_client.update_task_status_by_id,
@@ -139,14 +133,9 @@ class SimulatedAsset:
             self.logger.info(f"received cancel request, sending cancel confirmation")
             try:
                 task_cancel_update = anduril_tasks.TaskStatusUpdate(
-                    # For an extenesive list of supported task status values, reference 
-                    # https://docs.anduril.com/reference/models/taskmanager/v1/task#:~:text=of%20last%20update.-,statusTaskStatus,-The%20status%20of
                     new_status=anduril_tasks.TaskStatus(status="STATUS_DONE_NOT_OK"),
                     author=anduril_tasks.models.Principal(system=anduril_tasks.models.System(entity_id=self.entity_id)),
-                    status_version=STATUS_VERSION_COUNTER  # Integration is to track its own status version. This version number 
-                    # increments to indicate the task's current stage in its status lifecycle. Whenever a task's status updates, 
-                    # the status version increments by one. Any status updates received with a lower status version number than 
-                    # what is known are considered stale and ignored.
+                    status_version=STATUS_VERSION_COUNTER
                 )
                 await asyncio.to_thread(
                     self.tasks_api_client.update_task_status_by_id,
@@ -162,6 +151,8 @@ def validate_config(cfg):
         raise ValueError("missing lattice-ip")
     if "lattice-bearer-token" not in cfg:
         raise ValueError("missing lattice-bearer-token")
+    if "sandbox-token" not in cfg:
+        raise ValueError("missing sandbox-token")
     if "latitude" not in cfg:
         raise ValueError("missing latitude")
     if "longitude" not in cfg:
@@ -190,16 +181,22 @@ def main():
     args = parse_arguments()
     cfg = read_config(args.config)
 
-    entities_configuration = anduril_entities.Configuration(host=f"https://{cfg['lattice-ip']}/api/v1")
-    entities_api_client = anduril_entities.ApiClient(configuration=entities_configuration,
-                                                     header_name="Authorization",
-                                                     header_value=f"Bearer {cfg['lattice-bearer-token']}")
+    # ENTITIES API (REST)
+    entities_configuration = anduril_entities.Configuration(
+        host=f"https://{cfg['lattice-ip']}/api/v1"
+    )
+    entities_api_client = anduril_entities.ApiClient(configuration=entities_configuration)
+    entities_api_client.default_headers["Authorization"] = f"Bearer {cfg['lattice-bearer-token']}"
+    entities_api_client.default_headers["anduril-sandbox-authorization"] = f"Bearer {cfg['sandbox-token']}"
     entities_api = anduril_entities.EntityApi(api_client=entities_api_client)
 
-    tasks_configuration = anduril_tasks.Configuration(host=f"https://{cfg['lattice-ip']}/api/v1")
-    tasks_api_client = anduril_tasks.ApiClient(configuration=tasks_configuration,
-                                               header_name="Authorization",
-                                               header_value=f"Bearer {cfg['lattice-bearer-token']}")
+    # TASKS API (gRPC/gRPC-Web) — must also set both headers
+    tasks_configuration = anduril_tasks.Configuration(
+        host=f"https://{cfg['lattice-ip']}/api/v1"
+    )
+    tasks_api_client = anduril_tasks.ApiClient(configuration=tasks_configuration)
+    tasks_api_client.default_headers["Authorization"] = f"Bearer {cfg['lattice-bearer-token']}"
+    tasks_api_client.default_headers["anduril-sandbox-authorization"] = f"Bearer {cfg['sandbox-token']}"
     tasks_api = anduril_tasks.TaskApi(api_client=tasks_api_client)
 
     asset = SimulatedAsset(
@@ -207,7 +204,8 @@ def main():
         entities_api,
         tasks_api,
         "asset-01",
-        {"latitude": cfg['latitude'], "longitude": cfg['longitude']})
+        {"latitude": cfg['latitude'], "longitude": cfg['longitude']}
+    )
 
     try:
         asyncio.run(asset.run())
